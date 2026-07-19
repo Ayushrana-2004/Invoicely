@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Users, Mail, Phone, Building2 } from "lucide-react";
 import Link from "next/link";
+import { DeleteClientButton } from "@/components/clients/delete-client-button";
 
 export const revalidate = 30; // Revalidate every 30 seconds
 
@@ -58,6 +59,7 @@ export default async function ClientsPage() {
                     {client.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
+                <DeleteClientButton clientId={client.id} clientName={client.name} />
               </div>
               <h3 className="text-base font-semibold text-gray-900">{client.name}</h3>
               {client.business_name && (

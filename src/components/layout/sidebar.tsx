@@ -18,7 +18,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Clients", href: "/clients", icon: Users },
-  { name: "Reminders", href: "/settings", icon: Bell },
+  { name: "Reminders", href: "/reminders", icon: Bell },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
