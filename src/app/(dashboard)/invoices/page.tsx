@@ -9,6 +9,8 @@ import { Plus, FileText, Search } from "lucide-react";
 import Link from "next/link";
 import type { InvoiceStatus } from "@/types/database";
 
+export const revalidate = 15; // Revalidate every 15 seconds
+
 export default async function InvoicesPage() {
   const supabase = await createClient();
 

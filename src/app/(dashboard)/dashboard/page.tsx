@@ -17,6 +17,8 @@ import {
 import Link from "next/link";
 import type { InvoiceStatus } from "@/types/database";
 
+export const revalidate = 30; // Revalidate every 30 seconds
+
 export default async function DashboardPage() {
   const supabase = await createClient();
 

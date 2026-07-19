@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Users, Mail, Phone, Building2 } from "lucide-react";
 import Link from "next/link";
 
+export const revalidate = 30; // Revalidate every 30 seconds
+
 export default async function ClientsPage() {
   const supabase = await createClient();
 
