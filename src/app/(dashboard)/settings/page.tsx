@@ -7,11 +7,12 @@ import { Header } from "@/components/layout/header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Crown, Zap } from "lucide-react";
 
 export default function SettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [profile, setProfile] = useState({
     full_name: "",
@@ -99,11 +100,81 @@ export default function SettingsPage() {
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleUpgrade = async () => {
+    setUpgradeLoading(true);
+    try {
+      const res = await fetch("/api/subscription/create", { method: "POST" });
+      const data = await res.json();
+
+      if (data.subscription_url) {
+        // Redirect to Razorpay hosted page
+        window.location.href = data.subscription_url;
+      } else if (data.subscription_id) {
+        // Use Razorpay checkout
+        const options = {
+          key: data.razorpay_key,
+          subscription_id: data.subscription_id,
+          name: "Invoicely",
+          description: "Pro Plan - Monthly",
+          handler: function () {
+            // Payment successful — refresh page
+            window.location.reload();
+          },
+        };
+        const rzp = new (window as unknown as { Razorpay: new (opts: unknown) => { open: () => void } }).Razorpay(options);
+        rzp.open();
+      }
+    } catch (err) {
+      console.error("Upgrade failed:", err);
+    }
+    setUpgradeLoading(false);
+  };
+
   return (
     <div>
       <Header title="Settings" description="Manage your business profile and preferences" />
 
       <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+        {/* Subscription Plan */}
+        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Crown className="h-5 w-5 text-blue-600" />
+                <h3 className="text-base font-semibold text-gray-900">Your Plan</h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                You are on the <span className="font-semibold">Free</span> plan
+              </p>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Free plan includes:</p>
+                  <ul className="mt-1 space-y-1 text-gray-600">
+                    <li>5 invoices/month</li>
+                    <li>2 clients</li>
+                    <li>PDF download</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-gray-500">Pro plan (₹199/mo):</p>
+                  <ul className="mt-1 space-y-1 text-gray-600">
+                    <li>Unlimited invoices</li>
+                    <li>Unlimited clients</li>
+                    <li>WhatsApp reminders</li>
+                    <li>Auto reminders</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <Button onClick={handleUpgrade} loading={upgradeLoading} size="sm">
+              <Zap className="h-4 w-4 mr-1" />
+              Upgrade to Pro — ₹199/month
+            </Button>
+          </div>
+        </Card>
+
         {/* Business Profile */}
         <Card>
           <h3 className="text-base font-semibold text-gray-900 mb-4">Business Profile</h3>
