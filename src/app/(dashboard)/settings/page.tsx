@@ -13,6 +13,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState("");
   const [saved, setSaved] = useState(false);
   const [profile, setProfile] = useState({
     full_name: "",
@@ -102,22 +103,26 @@ export default function SettingsPage() {
 
   const handleUpgrade = async () => {
     setUpgradeLoading(true);
+    setUpgradeError("");
     try {
       const res = await fetch("/api/subscription/create", { method: "POST" });
       const data = await res.json();
 
+      if (!res.ok) {
+        setUpgradeError(data.error || "Something went wrong");
+        setUpgradeLoading(false);
+        return;
+      }
+
       if (data.subscription_url) {
-        // Redirect to Razorpay hosted page
         window.location.href = data.subscription_url;
       } else if (data.subscription_id) {
-        // Use Razorpay checkout
         const options = {
           key: data.razorpay_key,
           subscription_id: data.subscription_id,
           name: "Invoicely",
           description: "Pro Plan - Monthly",
           handler: function () {
-            // Payment successful — refresh page
             window.location.reload();
           },
         };
@@ -125,6 +130,7 @@ export default function SettingsPage() {
         rzp.open();
       }
     } catch (err) {
+      setUpgradeError("Network error. Please try again.");
       console.error("Upgrade failed:", err);
     }
     setUpgradeLoading(false);
@@ -172,6 +178,9 @@ export default function SettingsPage() {
               <Zap className="h-4 w-4 mr-1" />
               Upgrade to Pro — ₹199/month
             </Button>
+            {upgradeError && (
+              <p className="mt-2 text-sm text-red-600">{upgradeError}</p>
+            )}
           </div>
         </Card>
 

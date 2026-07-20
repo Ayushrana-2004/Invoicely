@@ -17,20 +17,15 @@ export async function POST() {
     return NextResponse.json({ error: "Razorpay not configured" }, { status: 500 });
   }
 
-  // Fetch user profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  // First, create or fetch a Razorpay plan (Pro plan at ₹199/month)
-  // In production, create this once and store the plan_id in env
   const planId = process.env.RAZORPAY_PLAN_ID;
 
   if (!planId) {
-    // Create plan if not exists (do this once manually in production)
-    const planResponse = await fetch("https://api.razorpay.com/v1/plans", {
+    return NextResponse.json({ error: "RAZORPAY_PLAN_ID not set" }, { status: 500 });
+  }
+
+  try {
+    // Create subscription
+    const subscriptionResponse = await fetch("https://api.razorpay.com/v1/subscriptions", {
       method: "POST",
       headers: {
         Authorization: `Basic ${Buffer.from(
@@ -39,59 +34,40 @@ export async function POST() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        period: "monthly",
-        interval: 1,
-        item: {
-          name: "Invoicely Pro",
-          amount: 19900, // ₹199 in paise
-          currency: "INR",
-          description: "Unlimited invoices, WhatsApp reminders, auto-reminders",
+        plan_id: planId,
+        total_count: 12,
+        quantity: 1,
+        customer_notify: 1,
+        notes: {
+          user_id: user.id,
+          email: user.email,
         },
       }),
     });
 
-    if (!planResponse.ok) {
-      return NextResponse.json({ error: "Failed to create plan" }, { status: 500 });
+    const responseData = await subscriptionResponse.json();
+
+    if (!subscriptionResponse.ok) {
+      console.error("Razorpay error:", JSON.stringify(responseData));
+      return NextResponse.json(
+        {
+          error: responseData.error?.description || "Failed to create subscription",
+          details: responseData.error,
+        },
+        { status: 500 }
+      );
     }
 
-    const plan = await planResponse.json();
-    // In production, store plan.id as RAZORPAY_PLAN_ID env var
     return NextResponse.json({
-      message: "Plan created. Set RAZORPAY_PLAN_ID env var to: " + plan.id,
-      plan_id: plan.id,
+      subscription_id: responseData.id,
+      razorpay_key: process.env.RAZORPAY_KEY_ID,
+      subscription_url: responseData.short_url,
     });
+  } catch (err) {
+    console.error("Subscription creation error:", err);
+    return NextResponse.json(
+      { error: "Internal server error", message: String(err) },
+      { status: 500 }
+    );
   }
-
-  // Create subscription
-  const subscriptionResponse = await fetch("https://api.razorpay.com/v1/subscriptions", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(
-        `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`
-      ).toString("base64")}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      plan_id: planId,
-      total_count: 12, // 12 months
-      quantity: 1,
-      notes: {
-        user_id: user.id,
-        email: user.email,
-      },
-    }),
-  });
-
-  if (!subscriptionResponse.ok) {
-    const err = await subscriptionResponse.json();
-    return NextResponse.json({ error: err.error?.description || "Failed to create subscription" }, { status: 500 });
-  }
-
-  const subscription = await subscriptionResponse.json();
-
-  return NextResponse.json({
-    subscription_id: subscription.id,
-    razorpay_key: process.env.RAZORPAY_KEY_ID,
-    subscription_url: subscription.short_url,
-  });
 }
