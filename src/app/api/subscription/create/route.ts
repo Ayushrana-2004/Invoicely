@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-// Create a Razorpay subscription for the user
+// Create a one-time Razorpay order for Pro upgrade
 export async function POST() {
   const supabase = await createClient();
 
@@ -17,53 +17,48 @@ export async function POST() {
     return NextResponse.json({ error: "Razorpay not configured" }, { status: 500 });
   }
 
-  const planId = process.env.RAZORPAY_PLAN_ID;
-
-  if (!planId) {
-    return NextResponse.json({ error: "RAZORPAY_PLAN_ID not set" }, { status: 500 });
-  }
+  const authHeader = `Basic ${Buffer.from(
+    `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`
+  ).toString("base64")}`;
 
   try {
-    // Create subscription
-    const subscriptionResponse = await fetch("https://api.razorpay.com/v1/subscriptions", {
+    // Create a one-time order for ₹399
+    const orderResponse = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`
-        ).toString("base64")}`,
+        Authorization: authHeader,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        plan_id: planId,
-        total_count: 12,
-        quantity: 1,
-        customer_notify: 1,
+        amount: 39900, // ₹399 in paise
+        currency: "INR",
+        receipt: `pro_${user.id.slice(0, 8)}_${Date.now()}`,
         notes: {
           user_id: user.id,
           email: user.email,
+          plan: "pro",
         },
       }),
     });
 
-    const responseData = await subscriptionResponse.json();
+    const orderData = await orderResponse.json();
 
-    if (!subscriptionResponse.ok) {
-      console.error("Razorpay error:", JSON.stringify(responseData));
+    if (!orderResponse.ok) {
+      console.error("Razorpay order error:", JSON.stringify(orderData));
       return NextResponse.json(
-        {
-          error: responseData.error?.description || "Failed to create subscription",
-          details: responseData.error,
-        },
+        { error: orderData.error?.description || "Failed to create order" },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
-      subscription_id: responseData.id,
+      order_id: orderData.id,
+      amount: orderData.amount,
+      currency: orderData.currency,
       razorpay_key: process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
-    console.error("Subscription creation error:", err);
+    console.error("Order creation error:", err);
     return NextResponse.json(
       { error: "Internal server error", message: String(err) },
       { status: 500 }

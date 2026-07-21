@@ -114,7 +114,7 @@ export default function SettingsPage() {
         return;
       }
 
-      if (data.subscription_id && data.razorpay_key) {
+      if (data.order_id && data.razorpay_key) {
         // Load Razorpay checkout script if not already loaded
         if (!(window as unknown as { Razorpay: unknown }).Razorpay) {
           const script = document.createElement("script");
@@ -128,11 +128,19 @@ export default function SettingsPage() {
 
         const options = {
           key: data.razorpay_key,
-          subscription_id: data.subscription_id,
+          amount: data.amount,
+          currency: data.currency,
+          order_id: data.order_id,
           name: "Invoicely",
-          description: "Pro Plan - ₹399/month",
+          description: "Pro Plan — One-time upgrade",
           theme: { color: "#2563eb" },
-          handler: function () {
+          handler: async function (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) {
+            // Verify payment and upgrade user
+            await fetch("/api/subscription/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(response),
+            });
             alert("Payment successful! Your account has been upgraded to Pro.");
             window.location.reload();
           },
@@ -140,6 +148,9 @@ export default function SettingsPage() {
             ondismiss: function () {
               setUpgradeLoading(false);
             },
+          },
+          prefill: {
+            email: profile.full_name ? undefined : undefined,
           },
         };
 
