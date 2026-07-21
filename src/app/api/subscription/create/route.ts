@@ -61,7 +61,6 @@ export async function POST() {
     return NextResponse.json({
       subscription_id: responseData.id,
       razorpay_key: process.env.RAZORPAY_KEY_ID,
-      subscription_url: responseData.short_url,
     });
   } catch (err) {
     console.error("Subscription creation error:", err);

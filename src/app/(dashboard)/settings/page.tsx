@@ -114,20 +114,39 @@ export default function SettingsPage() {
         return;
       }
 
-      if (data.subscription_url) {
-        window.location.href = data.subscription_url;
-      } else if (data.subscription_id) {
+      if (data.subscription_id && data.razorpay_key) {
+        // Load Razorpay checkout script if not already loaded
+        if (!(window as unknown as { Razorpay: unknown }).Razorpay) {
+          const script = document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.async = true;
+          document.body.appendChild(script);
+          await new Promise((resolve) => {
+            script.onload = resolve;
+          });
+        }
+
         const options = {
           key: data.razorpay_key,
           subscription_id: data.subscription_id,
           name: "Invoicely",
-          description: "Pro Plan - Monthly",
+          description: "Pro Plan - ₹399/month",
+          theme: { color: "#2563eb" },
           handler: function () {
+            alert("Payment successful! Your account has been upgraded to Pro.");
             window.location.reload();
           },
+          modal: {
+            ondismiss: function () {
+              setUpgradeLoading(false);
+            },
+          },
         };
+
         const rzp = new (window as unknown as { Razorpay: new (opts: unknown) => { open: () => void } }).Razorpay(options);
         rzp.open();
+      } else {
+        setUpgradeError("Could not initiate payment. Please try again.");
       }
     } catch (err) {
       setUpgradeError("Network error. Please try again.");
@@ -162,7 +181,7 @@ export default function SettingsPage() {
                   </ul>
                 </div>
                 <div>
-                  <p className="text-gray-500">Pro plan (₹199/mo):</p>
+                  <p className="text-gray-500">Pro plan (₹399/mo):</p>
                   <ul className="mt-1 space-y-1 text-gray-600">
                     <li>Unlimited invoices</li>
                     <li>Unlimited clients</li>
@@ -176,7 +195,7 @@ export default function SettingsPage() {
           <div className="mt-4">
             <Button onClick={handleUpgrade} loading={upgradeLoading} size="sm">
               <Zap className="h-4 w-4 mr-1" />
-              Upgrade to Pro — ₹199/month
+              Upgrade to Pro — ₹399/month
             </Button>
             {upgradeError && (
               <p className="mt-2 text-sm text-red-600">{upgradeError}</p>

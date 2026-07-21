@@ -182,7 +182,7 @@ export default function LandingPage() {
               <h3 className="text-lg font-semibold text-gray-900">Pro</h3>
               <p className="text-sm text-gray-500 mt-1">For growing freelancers</p>
               <div className="mt-4">
-                <span className="text-4xl font-bold text-gray-900">₹199</span>
+                <span className="text-4xl font-bold text-gray-900">₹399</span>
                 <span className="text-gray-500">/month</span>
               </div>
               <ul className="mt-6 space-y-3">
